@@ -4,18 +4,19 @@
 """this is the main entry point, which sets up the Communicator class"""
 import logging
 import sys
-import os
 import traceback
 import copy
 import argparse
+from pathlib import Path
 from configparser import ConfigParser
 
-from enoceanmqtt.communicator import Communicator
+from communicator import Communicator
+
 
 conf = {
     'debug': False,
     'config': ['/etc/enoceanmqtt.conf'],
-    'logfile': os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'enoceanmqtt.log')
+    'logfile': Path(__file__).parent.absolute().joinpath('..', 'enoceanmqtt.log')
 }
 
 
@@ -40,7 +41,7 @@ def load_config_file(config_files):
 
     for conf_file in config_files:
         config_parser = ConfigParser(inline_comment_prefixes=('#', ';'), interpolation=None)
-        if not os.path.isfile(conf_file):
+        if not Path(conf_file).is_file():
             logging.warning("Config file %s does not exist, skipping", conf_file)
             continue
         logging.info("Loading config file %s", conf_file)

@@ -11,3 +11,7 @@ man
 MANIFEST
 dist
 *.priv
+enoceanmqtt.conf
+send_command.py
+.idea/
+enocean/
