@@ -35,7 +35,7 @@ class Equipment(EnoceanEquipment):
         self.publish_date = True if kwargs.get("publish_date", False) in ("true", "True", "1") else False
         self.retain = True if kwargs.get("persistent", False) in ("true", "True", "1") else False
         self.log_learn = True if kwargs.get("log_learn", False) in ("true", "True", "1") else False
-        self.ignore = kwargs.get("ignore")
+        self.ignore = True if kwargs.get("ignore", False) in ("true", "True", "1") else False
         self.answer = kwargs.get("answer")
         self.command = kwargs.get("command")
         self.channel = kwargs.get("channel")
@@ -43,8 +43,32 @@ class Equipment(EnoceanEquipment):
         self.sender = kwargs.get("sender")
         self.default_data = kwargs.get("default_data")
         self.data = dict()
-        self.topic = f"{topic_prefix}{name}"
+        # Allow to specify a topic different from name to allow blank
+        if topic := kwargs.get("topic"):
+            self.topic = f"{topic_prefix}{topic}"
+        else:
+            self.topic = f"{topic_prefix}{name}"
         # self.logger.debug(f"Received kwargs {kwargs}")
+
+    @property
+    def definition(self):
+        return dict(
+            eep=self.eep_code,
+            description=self.description,
+            address=enocean.utils.to_hex_string(self.address),
+            direction=self.direction,
+            topic=self.topic,
+            config=dict(
+                publish_json=self.publish_json,
+                publish_rssi=self.publish_rssi,
+                publish_date=self.publish_date,
+                retain=self.retain,
+                ignore=self.ignore,
+                command=self.command,
+                sender=self.sender,
+                answer=self.answer
+            )
+        )
 
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -73,6 +97,7 @@ class Communicator:
                 topic_prefix = f"{topic_prefix}/"
         else:
             topic_prefix = ""
+        self.topic_prefix = topic_prefix
         self.equipments = self.setup_devices_list(topic_prefix, sensors)
 
         # check for mandatory configuration
@@ -139,10 +164,13 @@ class Communicator:
         '''callback for when the client receives a CONNACK response from the MQTT server.'''
         if return_code == 0:
             self.logger.info("Succesfully connected to MQTT broker.")
+            equipments_definition_list = list()
             # listen to enocean send requests
             for equipment in self.equipments.values():
                 # logging.debug("MQTT subscribing: %s", cur_sensor['name']+'/req/#')
                 mqtt_client.subscribe(equipment.topic+'/req/#')
+                equipments_definition_list.append(equipment.definition)
+            self.mqtt.publish(f"{self.topic_prefix}gateway/equipments", json.dumps(equipments_definition_list), retain=True)
         else:
             self.logger.error("Error connecting to MQTT broker: %s",
                           self.CONNECTION_RETURN_CODE[return_code]
