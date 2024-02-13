@@ -28,7 +28,7 @@ class Equipment(EnoceanEquipment):
         self.log_learn = self.get_config_boolean(kwargs, "log_learn")
         self.ignore = self.get_config_boolean(kwargs, "ignore")
         self.answer = kwargs.get("answer")
-        self.command = kwargs.get("command")
+        self.command = kwargs.get("command", "CMD")
         self.channel = kwargs.get("channel")
         self.direction = kwargs.get("direction")
         self.sender = kwargs.get("sender")
